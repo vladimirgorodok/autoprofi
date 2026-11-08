@@ -26,6 +26,7 @@ import { download, esc, fmtDate, fmtTime, isoDate, money, today } from "../utils
 const VERSION = "1.0.0";
 const REPO_URL = "https://github.com/vladimirgorodok/autoprofi";
 const APK_URL = "https://github.com/vladimirgorodok/autoprofi/releases/latest";
+const WEB_URL = "https://vladimirgorodok.github.io/autoprofi/";
 
 export default {
   title: "Настройки",
@@ -171,6 +172,10 @@ export default {
             финансы и расчёт заработка. Данные не покидают устройство.
           </p>
           <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <a class="btn btn-sm" href="${WEB_URL}" target="_blank" rel="noopener">${icon(
+      "globe",
+      "size-3.5"
+    )}Веб-версия</a>
             <a class="btn btn-sm" href="${REPO_URL}" target="_blank" rel="noopener">${icon(
       "share",
       "size-3.5"

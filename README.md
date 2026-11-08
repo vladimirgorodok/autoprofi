@@ -8,6 +8,9 @@ Android-приложение (WebView), без сервера, аккаунта 
 рабочий сценарий: смена → путевой лист → рейсы → топливо → расчёт. Это
 самостоятельная реализация, не связанная с оригиналом.
 
+**Демо:** https://vladimirgorodok.github.io/autoprofi/
+**Релизы и APK:** https://github.com/vladimirgorodok/autoprofi/releases
+
 ![Иконка АвтоПрофи](docs/icon-preview.png)
 
 ## Возможности
@@ -41,6 +44,15 @@ python3 -m http.server 8765
 
 Подойдёт любой статический сервер (nginx, Caddy, GitHub Pages). Для PWA
 нужен `http://localhost` или HTTPS — на нём регистрируется service worker.
+
+Публикация на GitHub Pages (ветка `gh-pages`, без GitHub Actions):
+
+```bash
+scripts/deploy-pages.sh
+```
+
+Скрипт собирает `web/` и APK из `dist/` в отдельную ветку `gh-pages`.
+В настройках репозитория источником Pages должна быть ветка `gh-pages`, папка `/`.
 
 ### Демо-данные
 
