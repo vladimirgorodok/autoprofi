@@ -24,7 +24,8 @@ import {
 import { download, esc, fmtDate, fmtTime, isoDate, money, today } from "../utils.js";
 
 const VERSION = "1.0.0";
-const REPO_URL = "https://github.com/";
+const REPO_URL = "https://github.com/vladimirgorodok/autoprofi";
+const APK_URL = "https://github.com/vladimirgorodok/autoprofi/releases/latest";
 
 export default {
   title: "Настройки",
@@ -174,6 +175,10 @@ export default {
       "share",
       "size-3.5"
     )}GitHub</a>
+            <a class="btn btn-sm" href="${APK_URL}" target="_blank" rel="noopener">${icon(
+      "download",
+      "size-3.5"
+    )}Скачать APK</a>
             <span class="btn btn-sm" style="pointer-events:none">${icon("shield", "size-3.5")}MIT</span>
             <span class="btn btn-sm" style="pointer-events:none">${icon("database", "size-3.5")}localStorage</span>
           </div>
