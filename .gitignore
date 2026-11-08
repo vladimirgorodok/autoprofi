@@ -1,0 +1,28 @@
+# Сборка и локальные файлы
+android/.gradle/
+android/build/
+android/app/build/
+android/build-manual/
+android/local.properties
+android/app/src/main/assets/www/
+
+# Node
+node_modules/
+tests/node_modules/
+tests/bundle.js
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Локальные секреты
+.env
+.env.*
+*.keystore
+!android/debug.keystore
+
+# Подписи APK
+dist/*.idsig

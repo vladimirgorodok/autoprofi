@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.autoprofi.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.autoprofi.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ""
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            // Для удобной установки APK подписывается debug-ключом.
+            // Для публикации создайте свой keystore и замените конфигурацию.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Внешних зависимостей нет: файлы раздаются из assets собственным
+// shouldInterceptRequest (см. MainActivity), поэтому проект собирается
+// без обращения к Maven.
