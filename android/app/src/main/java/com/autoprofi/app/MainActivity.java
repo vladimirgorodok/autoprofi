@@ -73,6 +73,7 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private LinearLayout errorPanel;
+    private boolean mainFrameError;
     private ValueCallback<Uri[]> filePathCallback;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -139,7 +140,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                if (errorPanel != null) {
+                if (!mainFrameError && errorPanel != null) {
                     errorPanel.setVisibility(View.GONE);
                 }
             }
@@ -147,9 +148,11 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request,
                                         WebResourceError error) {
-                if (request != null && request.isForMainFrame()
-                        && errorPanel != null) {
-                    errorPanel.setVisibility(View.VISIBLE);
+                if (request != null && request.isForMainFrame()) {
+                    mainFrameError = true;
+                    if (errorPanel != null) {
+                        errorPanel.setVisibility(View.VISIBLE);
+                    }
                 }
             }
         });
@@ -177,6 +180,7 @@ public class MainActivity extends Activity {
             }
         });
 
+        mainFrameError = false;
         webView.loadUrl(APP_URL);
     }
 
@@ -248,6 +252,7 @@ public class MainActivity extends Activity {
         Button retry = new Button(this);
         retry.setText("Повторить");
         retry.setOnClickListener(v -> {
+            mainFrameError = false;
             if (errorPanel != null) {
                 errorPanel.setVisibility(View.GONE);
             }
