@@ -67,16 +67,10 @@ export default {
     <div class="content">
       <div class="greeting">
         <div style="flex:1;min-width:0">
-          <h2>${greeting()}, ${esc(state.driver.name.split(" ")[0])}</h2>
-          <p>${esc(state.driver.role)} · ${esc(state.driver.company)}</p>
+          <h2>${greeting()}</h2>
+          <p>АвтоПрофи · офлайн-помощник</p>
         </div>
-        <div class="avatar">${esc(
-          state.driver.name
-            .split(" ")
-            .map((x) => x[0])
-            .join("")
-            .slice(0, 2)
-        )}</div>
+        <div class="avatar">${icon("truck", "size-5")}</div>
       </div>
 
       ${hero}
@@ -92,7 +86,7 @@ export default {
         ${kpi({
           label: "Топливо",
           value: `${num(fuel.liters)} <span class="small muted" style="font-weight:600">л</span>`,
-          foot: `${money(fuel.cost)} · ${num(fuel.consumption, 1)} л/100 км`,
+          foot: `${fuel.count} заправок · ${num(fuel.consumption, 1)} л/100 км`,
           iconName: "fuel",
           tone: "amber",
         })}
@@ -107,7 +101,7 @@ export default {
         ${kpi({
           label: "Расход",
           value: money(month.expense),
-          foot: "топливо и прочее",
+          foot: "за текущий месяц",
           iconName: "trendDown",
           tone: "rose",
           delta: pctDelta(month.expense, prev.expense),

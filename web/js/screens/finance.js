@@ -231,13 +231,11 @@ export function openFinanceModal({ id = null, type = "expense" } = {}) {
   const item = id ? state.finance.find((f) => f.id === id) : null;
   const isNew = !item;
 
-  if (item && (item.fuelId || item.tripId)) {
+  if (item && item.tripId) {
     const info = openModal({
       title: item.category,
       subtitle: `${fmtDate(item.date)} · ${money(item.amount)}`,
-      body: `<div class="notice">${icon("info", "size-4")}<span>Эта операция создана автоматически из ${
-        item.fuelId ? "заправки" : "рейса"
-      }. Изменяйте её в соответствующем разделе.</span></div>`,
+      body: `<div class="notice">${icon("info", "size-4")}<span>Эта операция создана автоматически из рейса. Изменяйте её в разделе «Поездки».</span></div>`,
       footer: `<button class="btn btn-primary" data-ok>Понятно</button>`,
     });
     info.el.querySelector("[data-ok]").addEventListener("click", () => closeModal(info.el.__entry));
@@ -253,6 +251,7 @@ export function openFinanceModal({ id = null, type = "expense" } = {}) {
     method: "cash",
   };
   let currentType = data.type;
+  const expenseCategories = (state.refs.categories || []).map((category) => category.name);
 
   const m = openModal({
     title: isNew ? "Новая операция" : "Редактировать операцию",
@@ -271,7 +270,7 @@ export function openFinanceModal({ id = null, type = "expense" } = {}) {
             "Категория",
             `<select class="select" name="category" id="fin-category">${(currentType === "income"
               ? INCOME_CATEGORIES
-              : state.refs.categories
+              : expenseCategories
             )
               .map(
                 (c) =>
@@ -318,7 +317,7 @@ export function openFinanceModal({ id = null, type = "expense" } = {}) {
       m.el
         .querySelectorAll("[data-fin-type]")
         .forEach((x) => x.classList.toggle("active", x === b));
-      const list = currentType === "income" ? INCOME_CATEGORIES : state.refs.categories;
+      const list = currentType === "income" ? INCOME_CATEGORIES : expenseCategories;
       categorySelect.innerHTML = list
         .map((c) => `<option value="${esc(c)}">${esc(c)}</option>`)
         .join("");

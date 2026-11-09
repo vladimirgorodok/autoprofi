@@ -78,7 +78,7 @@ function shell() {
         <img class="brand-logo" src="icons/icon.svg" alt="" />
         <div style="min-width:0">
           <div class="brand-name">АвтоПрофи</div>
-          <div class="brand-role">Водитель</div>
+          <div class="brand-role">Офлайн-помощник</div>
         </div>
       </div>
       <nav class="side-nav" id="side-nav"></nav>
@@ -346,7 +346,7 @@ function openSearch() {
       }
     }
     for (const w of state.waybills) {
-      const hay = `${w.number} ${w.fromCity} ${w.toCity} ${w.cargo} ${w.driver}`.toLowerCase();
+      const hay = `${w.number} ${w.fromCity} ${w.toCity} ${w.cargo}`.toLowerCase();
       if (hay.includes(query)) {
         hits.push({
           screen: "waybills",
@@ -363,7 +363,7 @@ function openSearch() {
           screen: "fuels",
           icon: "fuel",
           title: `${f.station} · ${f.liters} л`,
-          sub: `${fmtDate(f.date)} · ${money(f.liters * f.price)}`,
+          sub: `${fmtDate(f.date)} · ${f.fuelType}`,
         });
       }
     }

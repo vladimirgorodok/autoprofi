@@ -313,11 +313,20 @@ export function input({
   max,
   step,
   inputmode,
+  list,
 }) {
   return `<input class="input" name="${name}" type="${type}" value="${esc(value)}"
     placeholder="${esc(placeholder)}" ${required ? "required" : ""}
     ${min != null ? `min="${min}"` : ""} ${max != null ? `max="${max}"` : ""}
-    ${step != null ? `step="${step}"` : ""} ${inputmode ? `inputmode="${inputmode}"` : ""} />`;
+    ${step != null ? `step="${step}"` : ""} ${inputmode ? `inputmode="${inputmode}"` : ""}
+    ${list ? `list="${esc(list)}"` : ""} />`;
+}
+
+export function datalist(id, values = []) {
+  return `<datalist id="${esc(id)}">${values
+    .filter(Boolean)
+    .map((value) => `<option value="${esc(value)}"></option>`)
+    .join("")}</datalist>`;
 }
 
 export function select({ name, value = "", options = [], placeholder = "" }) {

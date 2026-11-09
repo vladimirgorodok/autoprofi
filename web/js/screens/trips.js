@@ -12,6 +12,7 @@ import {
 import {
   closeModal,
   confirmDialog,
+  datalist,
   dateInput,
   emptyState,
   field,
@@ -260,12 +261,16 @@ export function openTripModalForm(trip = null) {
     note: "",
   };
   const isNew = !trip;
+  const placeNames = (state.refs.places || []).map((place) => place.name);
+  const cargoNames = (state.refs.cargo || []).map((cargo) => cargo.name);
 
   const m = openModal({
     title: isNew ? "Новый рейс" : "Редактировать рейс",
     subtitle: isNew ? "Данные о поездке" : `${t.from} → ${t.to}`,
     body: `
       <form data-trip-form style="display:flex;flex-direction:column;gap:11px">
+        ${datalist("trip-places", placeNames)}
+        ${datalist("trip-cargo", cargoNames)}
         <div class="form-grid">
           ${field("Дата", dateInput({ name: "date", value: t.date }))}
           ${field("Статус", select({
@@ -278,11 +283,34 @@ export function openTripModalForm(trip = null) {
               { value: "paid", label: "Оплачен" },
             ],
           }))}
-          ${field("Откуда", input({ name: "from", value: t.from, placeholder: "Город", required: true }))}
-          ${field("Куда", input({ name: "to", value: t.to, placeholder: "Город", required: true }))}
+          ${field(
+            "Откуда",
+            input({
+              name: "from",
+              value: t.from,
+              placeholder: "Город",
+              required: true,
+              list: "trip-places",
+            })
+          )}
+          ${field(
+            "Куда",
+            input({
+              name: "to",
+              value: t.to,
+              placeholder: "Город",
+              required: true,
+              list: "trip-places",
+            })
+          )}
           <div class="span-2">${field(
             "Груз",
-            input({ name: "cargo", value: t.cargo, placeholder: "Например: Продукты, 12 т" })
+            input({
+              name: "cargo",
+              value: t.cargo,
+              placeholder: "Например: Продукты, 12 т",
+              list: "trip-cargo",
+            })
           )}</div>
           ${field("Расстояние, км", moneyInput({ name: "distance", value: t.distance }))}
           ${field("Ставка, ₽/км", moneyInput({ name: "rate", value: t.rate }))}

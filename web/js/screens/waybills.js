@@ -13,6 +13,7 @@ import {
 import {
   closeModal,
   confirmDialog,
+  datalist,
   dateInput,
   emptyState,
   field,
@@ -26,7 +27,7 @@ import {
   toast,
   waybillBadge,
 } from "../ui.js";
-import { download, esc, fmtDate, money, num, relDate, toCSV, today } from "../utils.js";
+import { download, esc, fmtDate, num, relDate, toCSV, today } from "../utils.js";
 
 let filter = "all";
 
@@ -156,7 +157,6 @@ export function openWaybillModal(id) {
     body: `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         ${waybillBadge(wb.status)}
-        <span class="tiny muted">${esc(wb.driver)}</span>
         <span style="flex:1"></span>
         <span class="tiny muted">${esc(v ? `${v.brand} ${v.model} · ${v.plate}` : "—")}</span>
       </div>
@@ -275,7 +275,6 @@ function openWaybillForm(wb = null) {
     status: "draft",
     validFrom: today(),
     validTo: today(),
-    driver: state.driver.name,
     vehicleId: state.vehicles.find((v) => v.active)?.id || state.vehicles[0]?.id || "",
     fromCity: "",
     fromAddr: "",
@@ -291,11 +290,19 @@ function openWaybillForm(wb = null) {
     note: "",
   };
 
+  const places = state.refs.places || [];
+  const placeNames = places.map((place) => place.name);
+  const addresses = [...new Set(places.map((place) => place.address).filter(Boolean))];
+  const cargoNames = (state.refs.cargo || []).map((cargo) => cargo.name);
+
   const m = openModal({
     title: isNew ? "Новый путевой лист" : `Лист ${data.series}-${data.number}`,
     subtitle: isNew ? "Заполните данные смены" : "Редактирование",
     body: `
       <form data-wb-form style="display:flex;flex-direction:column;gap:11px">
+        ${datalist("wb-places", placeNames)}
+        ${datalist("wb-addresses", addresses)}
+        ${datalist("wb-cargo", cargoNames)}
         <div class="form-grid">
           ${field(
             "Номер",
@@ -327,24 +334,28 @@ function openWaybillForm(wb = null) {
             "",
             true
           )}
-          ${field("Водитель", input({ name: "driver", value: data.driver }))}
           <div class="span-2">${field(
             "Откуда",
             `<div style="display:flex;gap:6px">
-              ${input({ name: "fromCity", value: data.fromCity, placeholder: "Город" })}
-              ${input({ name: "fromAddr", value: data.fromAddr, placeholder: "Адрес" })}
+              ${input({ name: "fromCity", value: data.fromCity, placeholder: "Город", list: "wb-places" })}
+              ${input({ name: "fromAddr", value: data.fromAddr, placeholder: "Адрес", list: "wb-addresses" })}
             </div>`
           )}</div>
           <div class="span-2">${field(
             "Куда",
             `<div style="display:flex;gap:6px">
-              ${input({ name: "toCity", value: data.toCity, placeholder: "Город" })}
-              ${input({ name: "toAddr", value: data.toAddr, placeholder: "Адрес" })}
+              ${input({ name: "toCity", value: data.toCity, placeholder: "Город", list: "wb-places" })}
+              ${input({ name: "toAddr", value: data.toAddr, placeholder: "Адрес", list: "wb-addresses" })}
             </div>`
           )}</div>
           <div class="span-2">${field(
             "Груз",
-            input({ name: "cargo", value: data.cargo, placeholder: "Например: Стройматериалы, 18 т" })
+            input({
+              name: "cargo",
+              value: data.cargo,
+              placeholder: "Например: Стройматериалы, 18 т",
+              list: "wb-cargo",
+            })
           )}</div>
           ${field("Расстояние, км", moneyInput({ name: "distance", value: data.distance }))}
           ${field("Топливо выдано, л", moneyInput({ name: "fuelIssued", value: data.fuelIssued }))}
@@ -363,6 +374,22 @@ function openWaybillForm(wb = null) {
   });
 
   const form = m.el.querySelector("[data-wb-form]");
+  const fillAddress = (cityName, addrName) => {
+    const cityEl = form.querySelector(`[name="${cityName}"]`);
+    const addrEl = form.querySelector(`[name="${addrName}"]`);
+    if (!cityEl || !addrEl || addrEl.value.trim()) return;
+    const place = places.find(
+      (row) => row.name.toLowerCase() === cityEl.value.trim().toLowerCase()
+    );
+    if (place?.address) addrEl.value = place.address;
+  };
+  form.querySelector('[name="fromCity"]')?.addEventListener("change", () =>
+    fillAddress("fromCity", "fromAddr")
+  );
+  form.querySelector('[name="toCity"]')?.addEventListener("change", () =>
+    fillAddress("toCity", "toAddr")
+  );
+
   const save = () => {
     const raw = formData(form);
     const payload = {
@@ -456,7 +483,7 @@ function printWaybill(wb) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f766e;padding-bottom:10px;margin-bottom:16px">
         <div>
           <div style="font-size:20px;font-weight:700">Путевой лист ${esc(wb.series)}-${esc(wb.number)}</div>
-          <div style="font-size:12px;color:#555;margin-top:2px">${esc(wb.driver)} · ${esc(
+          <div style="font-size:12px;color:#555;margin-top:2px">${esc(
     v ? `${v.brand} ${v.model} ${v.plate}` : "—"
   )}</div>
         </div>
@@ -506,7 +533,6 @@ function exportCSV() {
     { label: "Статус", value: (r) => r.status },
     { label: "С", value: (r) => r.validFrom },
     { label: "По", value: (r) => r.validTo },
-    { label: "Водитель", value: (r) => r.driver },
     { label: "Автомобиль", value: (r) => (r.vehicle ? `${r.vehicle.brand} ${r.vehicle.model}` : "") },
     { label: "Откуда", value: (r) => r.fromCity },
     { label: "Куда", value: (r) => r.toCity },

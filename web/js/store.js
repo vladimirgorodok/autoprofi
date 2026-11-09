@@ -14,6 +14,7 @@ import {
 } from "./utils.js";
 
 const KEY = "autoprofi.state.v1";
+const STATE_VERSION = 2;
 
 /* ------------------------------------------------------------------ */
 /* Демо-данные                                                         */
@@ -66,7 +67,6 @@ function seed() {
       issuedAt: d(2),
       validFrom: d(2),
       validTo: addDays(today(), 1),
-      driver: "Иван Петров",
       vehicleId: "v1",
       fromCity: "Москва",
       fromAddr: "Склад «Северный», ул. Складская, 4",
@@ -89,7 +89,6 @@ function seed() {
       issuedAt: d(11),
       validFrom: d(10),
       validTo: d(7),
-      driver: "Иван Петров",
       vehicleId: "v1",
       fromCity: "Москва",
       fromAddr: "Хладокомбинат № 4",
@@ -112,7 +111,6 @@ function seed() {
       issuedAt: d(18),
       validFrom: d(17),
       validTo: d(14),
-      driver: "Иван Петров",
       vehicleId: "v1",
       fromCity: "Москва",
       fromAddr: "Мебельная фабрика «Ладья»",
@@ -135,7 +133,6 @@ function seed() {
       issuedAt: null,
       validFrom: addDays(today(), 1),
       validTo: addDays(today(), 4),
-      driver: "Иван Петров",
       vehicleId: "v1",
       fromCity: "Москва",
       fromAddr: "Склад «Северный», ул. Складская, 4",
@@ -305,7 +302,6 @@ function seed() {
       station: "Роснефть",
       fuelType: "ДТ",
       liters: 160,
-      price: 68.9,
       odometer: 484_900,
       vehicleId: "v1",
       waybillId: null,
@@ -317,7 +313,6 @@ function seed() {
       station: "Газпромнефть",
       fuelType: "ДТ",
       liters: 95,
-      price: 67.2,
       odometer: 485_310,
       vehicleId: "v1",
       waybillId: "w3",
@@ -329,7 +324,6 @@ function seed() {
       station: "Лукойл",
       fuelType: "ДТ",
       liters: 115,
-      price: 67.5,
       odometer: 485_575,
       vehicleId: "v1",
       waybillId: "w2",
@@ -341,7 +335,6 @@ function seed() {
       station: "Татнефть",
       fuelType: "ДТ",
       liters: 105,
-      price: 68.1,
       odometer: 485_908,
       vehicleId: "v1",
       waybillId: null,
@@ -353,7 +346,6 @@ function seed() {
       station: "Газпромнефть",
       fuelType: "ДТ",
       liters: 95,
-      price: 67.9,
       odometer: 486_076,
       vehicleId: "v1",
       waybillId: "w1",
@@ -365,7 +357,6 @@ function seed() {
       station: "Лукойл",
       fuelType: "ДТ",
       liters: 75,
-      price: 68.4,
       odometer: 486_320,
       vehicleId: "v1",
       waybillId: "w1",
@@ -387,18 +378,6 @@ function seed() {
       method: "card",
     }));
 
-  /* Расходы на топливо */
-  const fuelExpenses = fuels.map((f) => ({
-    id: uid("fin"),
-    date: f.date,
-    type: "expense",
-    category: "Топливо",
-    amount: Math.round(f.liters * f.price * 100) / 100,
-    note: `${f.station} · ${f.liters} л`,
-    fuelId: f.id,
-    method: "card",
-  }));
-
   const otherExpenses = [
     { date: d(4), category: "Платные дороги", amount: 1_850, note: "М-12, участок 3" },
     { date: d(8), category: "Ремонт", amount: 12_500, note: "Замена фильтров и масла" },
@@ -416,51 +395,225 @@ function seed() {
   }));
 
   return {
-    version: 1,
+    version: STATE_VERSION,
     createdAt: new Date().toISOString(),
-    driver: {
-      name: "Иван Петров",
-      role: "Водитель",
-      phone: "+7 916 240-18-32",
-      license: "77 24 918374",
-      company: "ИП Петров И. С.",
-      percent: 12,
-      salary: 45_000,
-    },
     vehicles,
     waybills,
     trips,
     fuels,
-    finance: [...income, ...fuelExpenses, ...otherExpenses],
+    finance: [...income, ...otherExpenses],
     refs: {
       contractors: [
-        "ООО «ТрансЛогистик»",
-        "ООО «Северный склад»",
-        "АО «Восток-Ритейл»",
-        "ИП Смирнов А. В.",
+        {
+          id: "c1",
+          name: "ООО «ТрансЛогистик»",
+          type: "ООО",
+          inn: "7701234567",
+          kpp: "770101001",
+          ogrn: "1157746123456",
+          legalAddress: "г. Москва, ул. Логистическая, 12, оф. 401",
+          actualAddress: "г. Москва, ул. Логистическая, 12, оф. 401",
+          phone: "+7 495 120-45-10",
+          email: "info@translogistic.ru",
+          contact: "Сергей Иванов",
+          defaultCargo: "Стройматериалы",
+          note: "Постоянный заказчик, оплата по счёту.",
+        },
+        {
+          id: "c2",
+          name: "ООО «Северный склад»",
+          type: "ООО",
+          inn: "5023456789",
+          kpp: "502301001",
+          ogrn: "1175023009876",
+          legalAddress: "Московская обл., г. Мытищи, ул. Складская, 4",
+          actualAddress: "Московская обл., г. Мытищи, ул. Складская, 4",
+          phone: "+7 495 120-45-10",
+          email: "sklad@sever.ru",
+          contact: "Алексей Петров",
+          defaultCargo: "Продукты",
+          note: "Погрузка с 08:00 до 17:00.",
+        },
+        {
+          id: "c3",
+          name: "АО «Восток-Ритейл»",
+          type: "АО",
+          inn: "5261234567",
+          kpp: "526101001",
+          ogrn: "1025201234567",
+          legalAddress: "г. Нижний Новгород, Московское ш., 12",
+          actualAddress: "г. Нижний Новгород, Московское ш., 12",
+          phone: "+7 831 240-18-90",
+          email: "logistics@vostok-retail.ru",
+          contact: "Мария Смирнова",
+          defaultCargo: "Бытовая техника",
+          note: "",
+        },
+        {
+          id: "c4",
+          name: "ИП Смирнов А. В.",
+          type: "ИП",
+          inn: "773456789012",
+          kpp: "",
+          ogrn: "321770012345678",
+          legalAddress: "г. Москва, ул. Кутузова, 3",
+          actualAddress: "г. Москва, ул. Кутузова, 3",
+          phone: "+7 916 240-18-32",
+          email: "smirnov@example.ru",
+          contact: "Андрей Смирнов",
+          defaultCargo: "Мебель",
+          note: "",
+        },
       ],
-      cargo: ["Стройматериалы", "Продукты", "Бытовая техника", "Мебель", "Металлопрокат"],
+      cargo: [
+        { id: "g1", name: "Стройматериалы", note: "" },
+        { id: "g2", name: "Продукты", note: "" },
+        { id: "g3", name: "Бытовая техника", note: "" },
+        { id: "g4", name: "Мебель", note: "" },
+        { id: "g5", name: "Металлопрокат", note: "" },
+      ],
       places: [
-        "Москва",
-        "Нижний Новгород",
-        "Казань",
-        "Владимир",
-        "Ярославль",
-        "Смоленск",
-        "Тула",
-        "Воронеж",
-        "Рязань",
-        "Тверь",
-        "Липецк",
+        {
+          id: "p1",
+          name: "Москва",
+          firmId: "c2",
+          address: "Склад «Северный», ул. Складская, 4",
+          contact: "Алексей Петров",
+          phone: "+7 495 120-45-10",
+          coordinates: "55.7558, 37.6173",
+          loadingType: "Задняя",
+          defaultCargo: "Стройматериалы",
+          note: "",
+        },
+        {
+          id: "p2",
+          name: "Нижний Новгород",
+          firmId: "c3",
+          address: "ТЦ «Восток», Московское ш., 12",
+          contact: "Мария Смирнова",
+          phone: "+7 831 240-18-90",
+          coordinates: "56.3269, 44.0059",
+          loadingType: "Боковая",
+          defaultCargo: "Стройматериалы",
+          note: "",
+        },
+        {
+          id: "p3",
+          name: "Казань",
+          firmId: "c1",
+          address: "Логистический центр «Волга», ул. Портовая, 8",
+          contact: "",
+          coordinates: "55.7963, 49.1088",
+          loadingType: "Задняя",
+          defaultCargo: "Продукты",
+          note: "",
+        },
+        {
+          id: "p4",
+          name: "Владимир",
+          firmId: "c1",
+          address: "Склад «Владимир», ул. Механизаторов, 3",
+          contact: "",
+          coordinates: "56.1290, 40.4070",
+          loadingType: "Боковая",
+          defaultCargo: "Продукты",
+          note: "",
+        },
+        {
+          id: "p5",
+          name: "Ярославль",
+          firmId: "c3",
+          address: "РЦ «Волга», ул. Промышленная, 8",
+          contact: "",
+          coordinates: "57.6261, 39.8845",
+          loadingType: "Задняя",
+          defaultCargo: "Продукты",
+          note: "",
+        },
+        {
+          id: "p6",
+          name: "Смоленск",
+          firmId: "c4",
+          address: "ТК «Гамаюн», ул. Кутузова, 3",
+          contact: "",
+          coordinates: "54.7818, 32.0401",
+          loadingType: "Бортовая",
+          defaultCargo: "Мебель",
+          note: "",
+        },
+        {
+          id: "p7",
+          name: "Тула",
+          firmId: "c4",
+          address: "Склад «Тула», ул. Пролетарская, 15",
+          contact: "",
+          coordinates: "54.1961, 37.6182",
+          loadingType: "Задняя",
+          defaultCargo: "Металлопрокат",
+          note: "",
+        },
+        {
+          id: "p8",
+          name: "Воронеж",
+          firmId: "c1",
+          address: "Логистический парк «Дон», ул. Дорожная, 5",
+          contact: "",
+          coordinates: "51.6720, 39.1843",
+          loadingType: "Боковая",
+          defaultCargo: "Стройматериалы",
+          note: "",
+        },
+        {
+          id: "p9",
+          name: "Рязань",
+          firmId: "c2",
+          address: "Склад «Рязань», ул. Прижелезнодорожная, 2",
+          contact: "",
+          coordinates: "54.6269, 39.6916",
+          loadingType: "Задняя",
+          defaultCargo: "Продукты",
+          note: "",
+        },
+        {
+          id: "p10",
+          name: "Тверь",
+          firmId: "c3",
+          address: "РЦ «Тверь», ул. Индустриальная, 11",
+          contact: "",
+          coordinates: "56.8587, 35.9176",
+          loadingType: "Задняя",
+          defaultCargo: "Мебель",
+          note: "",
+        },
+        {
+          id: "p11",
+          name: "Липецк",
+          firmId: "c1",
+          address: "Склад «Липецк», ул. Металлургов, 7",
+          contact: "",
+          coordinates: "52.6088, 39.5992",
+          loadingType: "Боковая",
+          defaultCargo: "Металлопрокат",
+          note: "",
+        },
+      ],
+      stations: [
+        { id: "s1", name: "Лукойл", note: "" },
+        { id: "s2", name: "Газпромнефть", note: "" },
+        { id: "s3", name: "Роснефть", note: "" },
+        { id: "s4", name: "Татнефть", note: "" },
+        { id: "s5", name: "Shell", note: "" },
+        { id: "s6", name: "Нефтьмагистраль", note: "" },
+        { id: "s7", name: "Другая", note: "" },
       ],
       categories: [
-        "Топливо",
-        "Ремонт",
-        "Платные дороги",
-        "Штрафы",
-        "Стоянка",
-        "Мойка",
-        "Прочее",
+        { id: "k1", name: "Топливо", note: "" },
+        { id: "k2", name: "Ремонт", note: "" },
+        { id: "k3", name: "Платные дороги", note: "" },
+        { id: "k4", name: "Штрафы", note: "" },
+        { id: "k5", name: "Стоянка", note: "" },
+        { id: "k6", name: "Мойка", note: "" },
+        { id: "k7", name: "Прочее", note: "" },
       ],
     },
     settings: {
@@ -480,13 +633,111 @@ function seed() {
 let state = load();
 const listeners = new Set();
 
+function refDefaults(kind) {
+  if (kind === "contractors") {
+    return {
+      type: "ООО",
+      inn: "",
+      kpp: "",
+      ogrn: "",
+      legalAddress: "",
+      actualAddress: "",
+      phone: "",
+      email: "",
+      contact: "",
+      defaultCargo: "",
+      note: "",
+    };
+  }
+  if (kind === "places") {
+    return {
+      firmId: "",
+      address: "",
+      contact: "",
+      phone: "",
+      coordinates: "",
+      loadingType: "Задняя",
+      defaultCargo: "",
+      note: "",
+    };
+  }
+  return { note: "" };
+}
+
+function normalizeRefList(list, kind) {
+  if (!Array.isArray(list)) return [];
+  const used = new Set();
+  const out = [];
+  for (const raw of list) {
+    const item = typeof raw === "string" ? { name: raw } : { ...(raw || {}) };
+    const name = String(item.name ?? item.value ?? item.title ?? "").trim();
+    if (!name) continue;
+    let id = String(item.id || "");
+    if (!id || used.has(id)) id = uid("ref");
+    used.add(id);
+    out.push({ id, ...refDefaults(kind), ...item, name });
+  }
+  return out;
+}
+
+function migrateRefs(refs, fuels) {
+  const source = refs && typeof refs === "object" ? refs : {};
+  const out = {
+    contractors: normalizeRefList(source.contractors, "contractors"),
+    places: normalizeRefList(source.places, "places"),
+    cargo: normalizeRefList(source.cargo, "cargo"),
+    categories: normalizeRefList(source.categories, "categories"),
+    stations: normalizeRefList(source.stations, "stations"),
+  };
+  if (!Array.isArray(source.stations)) {
+    const names = [...new Set((fuels || []).map((f) => f.station).filter(Boolean))];
+    const defaults = [
+      "Лукойл",
+      "Газпромнефть",
+      "Роснефть",
+      "Татнефть",
+      "Shell",
+      "Нефтьмагистраль",
+      "Другая",
+    ];
+    out.stations = (names.length ? names : defaults).map((name) => ({
+      id: uid("ref"),
+      name,
+      note: "",
+    }));
+  }
+  return out;
+}
+
+function migrate(parsed) {
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.trips)) return seed();
+  const s = parsed;
+
+  for (const key of ["vehicles", "waybills", "trips", "fuels", "finance", "chat"]) {
+    if (!Array.isArray(s[key])) s[key] = [];
+  }
+  if (!s.settings || typeof s.settings !== "object") s.settings = seed().settings;
+  s.version = STATE_VERSION;
+
+  // Поля, которые больше не используются: водитель и цена топлива.
+  delete s.driver;
+  for (const w of s.waybills) delete w.driver;
+  for (const f of s.fuels) delete f.price;
+  // Автоматические расходы на топливо больше не нужны.
+  s.finance = s.finance.filter((f) => !f.fuelId);
+  s.refs = migrateRefs(s.refs, s.fuels);
+  return s;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return seed();
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.version) return seed();
-    return parsed;
+    const migrated = migrate(parsed);
+    localStorage.setItem(KEY, JSON.stringify(migrated));
+    return migrated;
   } catch (err) {
     console.warn("Не удалось прочитать сохранённые данные", err);
     return seed();
@@ -523,10 +774,6 @@ export function update(mutator) {
 /* ------------------------------------------------------------------ */
 /* Мутации                                                             */
 /* ------------------------------------------------------------------ */
-
-export function updateDriver(patch) {
-  update((s) => Object.assign(s.driver, patch));
-}
 
 export function setSettings(patch) {
   update((s) => Object.assign(s.settings, patch));
@@ -595,7 +842,6 @@ export function saveWaybill(data) {
       s.waybills.unshift({
         id: uid("w"),
         series: "АП",
-        driver: s.driver.name,
         ...data,
       });
     }
@@ -725,33 +971,12 @@ export function saveFuel(data) {
       s.vehicles.find((v) => v.active) ||
       s.vehicles[0];
     if (vehicle && fuel.odometer > vehicle.odometer) vehicle.odometer = fuel.odometer;
-
-    // Синхронизируем расход в финансах
-    const amount = Math.round(fuel.liters * fuel.price * 100) / 100;
-    const existing = s.finance.find((f) => f.fuelId === fuel.id);
-    if (existing) {
-      existing.amount = amount;
-      existing.date = fuel.date;
-      existing.note = `${fuel.station} · ${fuel.liters} л`;
-    } else {
-      s.finance.unshift({
-        id: uid("fin"),
-        date: fuel.date,
-        type: "expense",
-        category: "Топливо",
-        amount,
-        note: `${fuel.station} · ${fuel.liters} л`,
-        fuelId: fuel.id,
-        method: "card",
-      });
-    }
   });
 }
 
 export function deleteFuel(id) {
   update((s) => {
     s.fuels = s.fuels.filter((f) => f.id !== id);
-    s.finance = s.finance.filter((f) => f.fuelId !== id);
   });
 }
 
@@ -774,17 +999,126 @@ export function deleteFinance(id) {
 }
 
 /* --- Справочники --- */
-export function addRef(kind, value) {
+export function refNames(kind) {
+  return (state.refs[kind] || []).map((item) => item.name).filter(Boolean);
+}
+
+export function refById(kind, id) {
+  return (state.refs[kind] || []).find((item) => item.id === id) || null;
+}
+
+function renameText(value, oldName, newName) {
+  if (!value) return value;
+  if (value === oldName) return newName;
+  if (value.startsWith(`${oldName},`)) return `${newName}${value.slice(oldName.length)}`;
+  if (value.startsWith(`${oldName} `)) return `${newName}${value.slice(oldName.length)}`;
+  return value;
+}
+
+function renameRefUsage(s, kind, oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return;
+  if (kind === "categories") {
+    for (const f of s.finance) if (f.category === oldName) f.category = newName;
+    return;
+  }
+  if (kind === "stations") {
+    for (const f of s.fuels) if (f.station === oldName) f.station = newName;
+    return;
+  }
+  if (kind === "cargo") {
+    for (const t of s.trips) t.cargo = renameText(t.cargo, oldName, newName);
+    for (const w of s.waybills) w.cargo = renameText(w.cargo, oldName, newName);
+    return;
+  }
+  if (kind === "places") {
+    for (const t of s.trips) {
+      t.from = renameText(t.from, oldName, newName);
+      t.to = renameText(t.to, oldName, newName);
+    }
+    for (const w of s.waybills) {
+      w.fromCity = renameText(w.fromCity, oldName, newName);
+      w.toCity = renameText(w.toCity, oldName, newName);
+    }
+  }
+}
+
+export function addRef(kind, data) {
+  let created = null;
   update((s) => {
-    const list = s.refs[kind];
-    if (list && !list.includes(value)) list.push(value);
+    const list = s.refs[kind] || (s.refs[kind] = []);
+    const payload = typeof data === "string" ? { name: data } : { ...(data || {}) };
+    const name = String(payload.name || "").trim();
+    if (!name) return;
+    if (list.some((item) => item.name.toLowerCase() === name.toLowerCase())) return;
+    created = { id: uid("ref"), ...refDefaults(kind), ...payload, name };
+    list.push(created);
+  });
+  return created;
+}
+
+export function updateRef(kind, id, patch) {
+  let ok = false;
+  update((s) => {
+    const list = s.refs[kind] || [];
+    const item = list.find((row) => row.id === id);
+    if (!item) return;
+    const next = { ...item, ...patch };
+    const name = String(next.name || "").trim();
+    if (!name) return;
+    if (list.some((row) => row.id !== id && row.name.toLowerCase() === name.toLowerCase())) {
+      return;
+    }
+    const oldName = item.name;
+    const oldAddress = item.address;
+    Object.assign(item, next, { name });
+    if (kind === "places" && oldAddress && item.address && oldAddress !== item.address) {
+      for (const w of s.waybills) {
+        if (w.fromAddr === oldAddress) w.fromAddr = item.address;
+        if (w.toAddr === oldAddress) w.toAddr = item.address;
+      }
+    }
+    renameRefUsage(s, kind, oldName, name);
+    ok = true;
+  });
+  return ok;
+}
+
+export function deleteRef(kind, id) {
+  update((s) => {
+    s.refs[kind] = (s.refs[kind] || []).filter((item) => item.id !== id);
+    if (kind === "contractors") {
+      for (const place of s.refs.places || []) {
+        if (place.firmId === id) place.firmId = "";
+      }
+    }
   });
 }
 
-export function deleteRef(kind, value) {
-  update((s) => {
-    s.refs[kind] = s.refs[kind].filter((v) => v !== value);
-  });
+export function refUsage(kind, item) {
+  if (!item || !item.name) return 0;
+  const name = item.name;
+  if (kind === "categories") {
+    return state.finance.filter((f) => f.category === name).length;
+  }
+  if (kind === "stations") {
+    return state.fuels.filter((f) => f.station === name).length;
+  }
+  if (kind === "cargo") {
+    return [...state.trips, ...state.waybills].filter((row) => {
+      const value = String(row.cargo || "");
+      return value === name || value.startsWith(`${name},`) || value.startsWith(`${name} `);
+    }).length;
+  }
+  if (kind === "places") {
+    return (
+      state.trips.filter((t) => t.from === name || t.to === name).length +
+      state.waybills.filter((w) => w.fromCity === name || w.toCity === name).length
+    );
+  }
+  if (kind === "contractors") {
+    return (state.refs.places || []).filter((place) => place.firmId === item.id).length;
+  }
+  return 0;
 }
 
 /* --- Чат --- */
@@ -813,7 +1147,7 @@ export function importState(json) {
   if (!parsed || !parsed.version || !Array.isArray(parsed.trips)) {
     throw new Error("Файл не похож на резервную копию АвтоПрофи");
   }
-  state = parsed;
+  state = migrate(parsed);
   commit();
   applyTheme(state.settings.theme);
 }
@@ -887,8 +1221,6 @@ export function fuelStats(vehicleId = null) {
     .sort((a, b) => a.odometer - b.odometer);
   const monthList = list.filter((f) => f.date >= startOfMonth());
   const liters = sum(monthList, (f) => f.liters);
-  const cost = sum(monthList, (f) => f.liters * f.price);
-  const avgPrice = liters ? cost / liters : 0;
 
   let km = 0;
   let used = 0;
@@ -902,8 +1234,7 @@ export function fuelStats(vehicleId = null) {
   const consumption = km > 0 ? (used / km) * 100 : 0;
   return {
     liters,
-    cost,
-    avgPrice,
+    count: monthList.length,
     consumption,
     km,
     totalLiters: sum(list, (f) => f.liters),
@@ -1034,7 +1365,6 @@ export function dataSnapshot() {
   const vehicle = activeVehicle();
   return {
     сегодня: today(),
-    водитель: state.driver,
     автомобиль: vehicle
       ? {
           модель: `${vehicle.brand} ${vehicle.model}`,
@@ -1046,8 +1376,8 @@ export function dataSnapshot() {
     месяц: { доход: f.income, расход: f.expense, баланс: f.balance },
     топливо: {
       литров_за_месяц: Math.round(fuel.liters),
+      заправок_за_месяц: fuel.count,
       средний_расход_л_на_100_км: Number(fuel.consumption.toFixed(1)),
-      средняя_цена: Number(fuel.avgPrice.toFixed(2)),
     },
     активный_путевой_лист: active
       ? {
@@ -1065,7 +1395,6 @@ export function dataSnapshot() {
       дата: x.date,
       азс: x.station,
       литров: x.liters,
-      цена: x.price,
       одометр: x.odometer,
     })),
   };

@@ -105,7 +105,7 @@ function check(name, cond, extra = '') {
   await tick();
   check('trip paid income', state().finance.filter(f => f.tripId === newTrip.id).length === incBefore + 1);
 
-  // --- Fuels: create
+  // --- Fuels: create (без цены и без авто-расхода)
   route('fuels');
   await tick();
   const beforeFuels = state().fuels.length;
@@ -114,14 +114,13 @@ function check(name, cond, extra = '') {
   await tick();
   setVal('[data-fuel-form] [name="station"]', 'Лукойл');
   setVal('[data-fuel-form] [name="liters"]', '200');
-  setVal('[data-fuel-form] [name="price"]', '70');
   setVal('[data-fuel-form] [name="odometer"]', '487000');
   click('[data-fuel-save]');
   await tick();
   check('fuel created', state().fuels.length === beforeFuels + 1);
-  check('fuel expense created', state().finance.length === beforeFin + 1, `fin ${beforeFin}->${state().finance.length}`);
-  const fuelFin = state().finance.find(f => f.fuelId === state().fuels[0].id);
-  check('fuel expense amount', fuelFin && fuelFin.amount === 14000, 'amount=' + (fuelFin && fuelFin.amount));
+  check('fuel has no price', state().fuels[0].price === undefined, JSON.stringify(state().fuels[0]));
+  check('fuel expense not created', state().finance.length === beforeFin, `fin ${beforeFin}->${state().finance.length}`);
+  check('no fuel expenses in finance', !state().finance.some(f => f.fuelId));
 
   // --- Finance: create expense
   route('finance');
@@ -160,12 +159,12 @@ function check(name, cond, extra = '') {
   await tick();
   setVal('[data-fuel-form] [name="station"]', 'Татнефть');
   setVal('[data-fuel-form] [name="liters"]', '50');
-  setVal('[data-fuel-form] [name="price"]', '70');
   setVal('[data-fuel-form] [name="odometer"]', '500');
   click('[data-fuel-save]');
   await tick();
   const fuelNew = state().fuels.find(f => f.station === 'Татнефть');
   check('fuel linked to vehicle', fuelNew && fuelNew.vehicleId === newVeh.id, JSON.stringify(fuelNew));
+  check('new fuel has no price', fuelNew && fuelNew.price === undefined, JSON.stringify(fuelNew));
   check('new vehicle odometer updated', state().vehicles.find(v => v.id === newVeh.id).odometer === 500);
   check('old vehicle odometer intact', state().vehicles.find(v => v.id === 'v1').odometer === 487000);
 
@@ -184,6 +183,7 @@ function check(name, cond, extra = '') {
   check('waybill created', state().waybills.length === beforeWb + 1);
   const nw = state().waybills.find(w => w.fromCity === 'Москва' && w.toCity === 'Рязань');
   check('waybill draft', nw && nw.status === 'draft');
+  check('waybill has no driver', nw && nw.driver === undefined, JSON.stringify(nw));
   route('waybills');
   await tick();
   click(`[data-action="open"][data-id="${nw.id}"]`);
@@ -197,18 +197,35 @@ function check(name, cond, extra = '') {
   check('print root present', !!doc.getElementById('print-root'));
   check('print class', doc.body.classList.contains('printing'));
 
-  // --- Refs: add via form submit
+  // --- Refs: add and edit via modal
   route('refs');
   await tick();
   const refsBefore = state().refs.contractors.length;
-  const form = doc.querySelector('form[data-form="add-ref"]');
-  check('refs form marked data-form', !!form);
-  if (form) {
-    form.querySelector('[name="value"]').value = 'ООО Тест';
-    form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-    await tick();
-    check('ref added', state().refs.contractors.length === refsBefore + 1);
-  }
+  click('#screen-action [data-action="new"]');
+  await tick();
+  check('refs form opens', !!doc.querySelector('[data-ref-form]'));
+  check('firm form has INN', !!doc.querySelector('[data-ref-form] [name="inn"]'));
+  check('firm form has legal address', !!doc.querySelector('[data-ref-form] [name="legalAddress"]'));
+  check('firm form has contact', !!doc.querySelector('[data-ref-form] [name="contact"]'));
+  setVal('[data-ref-form] [name="name"]', 'ООО Тест');
+  click('[data-ref-save]');
+  await tick();
+  check('ref added', state().refs.contractors.length === refsBefore + 1, `len=${state().refs.contractors.length}`);
+  const newRef = state().refs.contractors.find(r => r.name === 'ООО Тест');
+  check('ref has id and name', newRef && newRef.id && newRef.name === 'ООО Тест', JSON.stringify(newRef));
+
+  click(`[data-action="edit"][data-id="${newRef.id}"]`);
+  await tick();
+  setVal('[data-ref-form] [name="name"]', 'ООО Тест 2');
+  setVal('[data-ref-form] [name="note"]', 'Обновлено');
+  click('[data-ref-save]');
+  await tick();
+  const editedRef = state().refs.contractors.find(r => r.id === newRef.id);
+  check('ref edited', editedRef && editedRef.name === 'ООО Тест 2' && editedRef.note === 'Обновлено', JSON.stringify(editedRef));
+
+  // --- New data shape: no driver, no fuel prices
+  check('driver removed', state().driver === undefined);
+  check('all fuels have no price', state().fuels.every(f => f.price === undefined));
 
   // --- Settings theme
   route('settings');

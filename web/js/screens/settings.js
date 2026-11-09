@@ -8,7 +8,6 @@ import {
   resetDemo,
   setSettings,
   setTheme,
-  updateDriver,
 } from "../store.js";
 import {
   closeModal,
@@ -21,9 +20,9 @@ import {
   select,
   toast,
 } from "../ui.js";
-import { download, esc, fmtDate, fmtTime, isoDate, money, today } from "../utils.js";
+import { download, esc, fmtDate, fmtTime, isoDate, today } from "../utils.js";
 
-const VERSION = "1.0.1";
+const VERSION = "1.1.0";
 const REPO_URL = "https://github.com/vladimirgorodok/autoprofi";
 const APK_URL = "https://github.com/vladimirgorodok/autoprofi/releases/latest";
 const WEB_URL = "https://vladimirgorodok.github.io/autoprofi/";
@@ -42,22 +41,6 @@ export default {
 
     return `
     <div class="content">
-      <div class="card card-pad" style="display:flex;gap:13px;align-items:center">
-        <div class="avatar" style="width:48px;height:48px;font-size:16px">${esc(
-          state.driver.name
-            .split(" ")
-            .map((x) => x[0])
-            .join("")
-            .slice(0, 2)
-        )}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:680;font-size:15px">${esc(state.driver.name)}</div>
-          <div class="small muted">${esc(state.driver.role)} · ${esc(state.driver.company)}</div>
-          <div class="tiny muted" style="margin-top:2px">${esc(state.driver.phone)}</div>
-        </div>
-        <button class="btn btn-sm" data-action="edit-profile">${icon("pencil", "size-3.5")}Изменить</button>
-      </div>
-
       <div class="card">
         <div class="card-head"><h2>Внешний вид</h2></div>
         <div class="card-pad" style="padding-top:10px">
@@ -194,7 +177,6 @@ export default {
   },
 
   actions: {
-    "edit-profile": () => openProfileModal(),
     "edit-ai": () => openAiModal(),
     theme: (el) => {
       setTheme(el.dataset.value);
@@ -276,38 +258,6 @@ export default {
 };
 
 /* ------------------------------------------------------------------ */
-
-function openProfileModal() {
-  const d = getState().driver;
-  const m = openModal({
-    title: "Профиль водителя",
-    subtitle: "Данные подставляются в путевые листы",
-    body: `
-      <form data-profile-form style="display:flex;flex-direction:column;gap:11px">
-        <div class="form-grid">
-          ${field("Имя", input({ name: "name", value: d.name, required: true }))}
-          ${field("Роль", input({ name: "role", value: d.role }))}
-          <div class="span-2">${field("Компания", input({ name: "company", value: d.company }))}</div>
-          ${field("Телефон", input({ name: "phone", value: d.phone, type: "tel" }))}
-          ${field("Водительское удостоверение", input({ name: "license", value: d.license }))}
-        </div>
-      </form>`,
-    footer: `<button class="btn" data-p-cancel>Отмена</button>
-      <button class="btn btn-primary" data-p-save>Сохранить</button>`,
-  });
-
-  m.el.querySelector("[data-p-save]").addEventListener("click", () => {
-    const raw = formData(m.el.querySelector("[data-profile-form]"));
-    if (!raw.name) {
-      toast("Укажите имя", "err");
-      return;
-    }
-    updateDriver(raw);
-    closeModal(m.el.__entry);
-    toast("Профиль сохранён", "ok");
-  });
-  m.el.querySelector("[data-p-cancel]").addEventListener("click", () => closeModal(m.el.__entry));
-}
 
 function openAiModal() {
   const ai = getState().settings.ai || {};

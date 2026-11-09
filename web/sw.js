@@ -1,6 +1,6 @@
 /* Service worker: приложение работает офлайн после первого запуска. */
 
-const CACHE = "autoprofi-v2";
+const CACHE = "autoprofi-v3";
 
 const ASSETS = [
   "./",

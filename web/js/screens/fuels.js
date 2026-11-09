@@ -1,38 +1,28 @@
-/* Заправки: журнал, расход, стоимость. */
+/* Заправки: журнал и расход топлива. */
 
 import { deleteFuel, fuelStats, getState, saveFuel } from "../store.js";
 import {
   closeModal,
   confirmDialog,
+  datalist,
   dateInput,
   emptyState,
   field,
   formData,
   icon,
-  input,
   moneyInput,
   openModal,
   select,
   toast,
 } from "../ui.js";
-import { download, esc, fmtDate, fmtDateShort, money, num, toCSV, today } from "../utils.js";
-
-const STATIONS = [
-  "Лукойл",
-  "Газпромнефть",
-  "Роснефть",
-  "Татнефть",
-  "Shell",
-  "Нефтьмагистраль",
-  "Другая",
-];
+import { download, esc, fmtDate, fmtDateShort, num, toCSV, today } from "../utils.js";
 
 export default {
   title: "Заправки",
 
   subtitle(state) {
     const f = fuelStats();
-    return `${num(f.liters)} л за месяц · ${money(f.cost)}`;
+    return `${num(f.liters)} л за месяц · ${num(f.consumption, 1)} л/100 км`;
   },
 
   primaryAction: { label: "Заправка", action: "new" },
@@ -54,7 +44,7 @@ export default {
             "size-4"
           )}</span></div>
           <div class="kpi-value">${num(f.liters)} <span class="small muted" style="font-weight:600">л</span></div>
-          <div class="kpi-foot">${money(f.cost)}</div>
+          <div class="kpi-foot">${f.count} заправок</div>
         </div>
         <div class="kpi kpi-amber">
           <div class="kpi-top"><span class="kpi-label">Расход</span><span class="kpi-icon">${icon(
@@ -65,12 +55,12 @@ export default {
           <div class="kpi-foot">л / 100 км</div>
         </div>
         <div class="kpi kpi-blue">
-          <div class="kpi-top"><span class="kpi-label">Цена</span><span class="kpi-icon">${icon(
-            "coins",
+          <div class="kpi-top"><span class="kpi-label">Заправок</span><span class="kpi-icon">${icon(
+            "receipt",
             "size-4"
           )}</span></div>
-          <div class="kpi-value">${num(f.avgPrice, 2)} <span class="small muted" style="font-weight:600">₽</span></div>
-          <div class="kpi-foot">средняя за литр</div>
+          <div class="kpi-value">${f.count}</div>
+          <div class="kpi-foot">за текущий месяц</div>
         </div>
         <div class="kpi kpi-rose">
           <div class="kpi-top"><span class="kpi-label">Пробег</span><span class="kpi-icon">${icon(
@@ -119,7 +109,7 @@ export default {
           : `<div class="card">${emptyState({
               iconName: "fuel",
               title: "Заправок нет",
-              text: "Фиксируйте каждую заправку — приложение посчитает расход и стоимость.",
+              text: "Фиксируйте каждую заправку — приложение посчитает расход топлива.",
               action: `<button class="btn btn-primary btn-sm" data-action="new">${icon(
                 "plus",
                 "size-4"
@@ -144,12 +134,11 @@ function renderRow(f) {
         <span class="rtitle">${esc(f.station)} <span class="tiny muted" style="font-weight:500">${esc(
     f.fuelType
   )}</span></span>
-        <span class="rsub">${fmtDateShort(f.date)} · ${num(f.liters)} л × ${num(f.price, 2)} ₽ · ${num(
+        <span class="rsub">${fmtDateShort(f.date)} · ${num(f.liters)} л · ${num(
     f.odometer
   )} км</span>
       </span>
       <span class="rside">
-        <span class="ramount">${money(f.liters * f.price)}</span>
         <span class="rdate">${f.full ? "полный бак" : "частично"}</span>
       </span>
     </button>`;
@@ -169,12 +158,12 @@ export function openFuelModal(id = null) {
     station: "",
     fuelType: "ДТ",
     liters: "",
-    price: "",
     odometer: vehicle?.odometer || "",
     vehicleId: vehicle?.id || "",
     waybillId: "",
     full: true,
   };
+  const stations = (state.refs.stations || []).map((s) => s.name);
 
   const m = openModal({
     title: isNew ? "Новая заправка" : "Редактировать заправку",
@@ -185,9 +174,9 @@ export function openFuelModal(id = null) {
           ${field("Дата", dateInput({ name: "date", value: data.date }))}
           ${field(
             "АЗС",
-            `<input class="input" name="station" list="stations" value="${esc(data.station)}"
+            `<input class="input" name="station" list="fuel-stations" value="${esc(data.station)}"
               placeholder="Название" required />
-             <datalist id="stations">${STATIONS.map((s) => `<option value="${s}">`).join("")}</datalist>`
+             ${datalist("fuel-stations", stations)}`
           )}
           ${field("Топливо", select({
             name: "fuelType",
@@ -196,7 +185,6 @@ export function openFuelModal(id = null) {
           }))}
           ${field("Одометр, км", moneyInput({ name: "odometer", value: data.odometer }))}
           ${field("Литров", moneyInput({ name: "liters", value: data.liters }))}
-          ${field("Цена за литр, ₽", moneyInput({ name: "price", value: data.price }))}
           ${
             state.vehicles.length > 1
               ? `<div class="span-2">${field(
@@ -212,12 +200,6 @@ export function openFuelModal(id = null) {
                 )}</div>`
               : ""
           }
-          <div class="span-2">
-            <div class="notice" style="justify-content:space-between;align-items:center">
-              <span>Сумма к оплате</span>
-              <b id="fuel-total" style="font-size:15px">${money(0)}</b>
-            </div>
-          </div>
           <div class="span-2">${field(
             "Путевой лист",
             select({
@@ -247,22 +229,12 @@ export function openFuelModal(id = null) {
   });
 
   const form = m.el.querySelector("[data-fuel-form]");
-  const liters = form.querySelector('[name="liters"]');
-  const price = form.querySelector('[name="price"]');
-  const totalEl = m.el.querySelector("#fuel-total");
-  const recalc = () => {
-    totalEl.textContent = money((Number(liters.value) || 0) * (Number(price.value) || 0));
-  };
-  liters.addEventListener("input", recalc);
-  price.addEventListener("input", recalc);
-  recalc();
 
   const save = () => {
     const raw = formData(form);
     const payload = {
       ...raw,
       liters: Number(raw.liters) || 0,
-      price: Number(raw.price) || 0,
       odometer: Number(raw.odometer) || 0,
       vehicleId: raw.vehicleId || vehicle?.id || null,
       waybillId: raw.waybillId || null,
@@ -272,8 +244,8 @@ export function openFuelModal(id = null) {
       toast("Укажите АЗС", "err");
       return;
     }
-    if (payload.liters <= 0 || payload.price <= 0) {
-      toast("Проверьте литры и цену", "err");
+    if (payload.liters <= 0) {
+      toast("Укажите количество литров", "err");
       return;
     }
     if (payload.odometer <= 0) {
@@ -294,7 +266,7 @@ export function openFuelModal(id = null) {
   m.el.querySelector("[data-fuel-delete]")?.addEventListener("click", async () => {
     const ok = await confirmDialog({
       title: "Удалить заправку?",
-      message: "Запись и связанный расход будут удалены.",
+      message: "Запись будет удалена из журнала.",
       confirmText: "Удалить",
       danger: true,
     });
@@ -311,8 +283,6 @@ function exportCSV() {
     { label: "АЗС", value: (f) => f.station },
     { label: "Топливо", value: (f) => f.fuelType },
     { label: "Литров", value: (f) => f.liters },
-    { label: "Цена", value: (f) => f.price },
-    { label: "Сумма", value: (f) => Math.round(f.liters * f.price * 100) / 100 },
     { label: "Одометр", value: (f) => f.odometer },
   ]);
   download(`zapravki-${today()}.csv`, csv, "text/csv");
