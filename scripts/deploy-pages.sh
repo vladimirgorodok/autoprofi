@@ -10,8 +10,9 @@ trap 'rm -rf "$TMP"' EXIT
 
 cp -r "$ROOT/web/." "$TMP/"
 mkdir -p "$TMP/download"
-if ls "$ROOT"/dist/*.apk >/dev/null 2>&1; then
-  cp "$ROOT"/dist/*.apk "$TMP/download/autoprofi.apk"
+LATEST_APK="$(ls -1t "$ROOT"/dist/*.apk 2>/dev/null | head -1 || true)"
+if [ -n "$LATEST_APK" ]; then
+  cp "$LATEST_APK" "$TMP/download/autoprofi.apk"
 fi
 
 REMOTE_URL="$(git -C "$ROOT" remote get-url "$REMOTE")"

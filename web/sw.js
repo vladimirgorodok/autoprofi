@@ -1,6 +1,6 @@
 /* Service worker: приложение работает офлайн после первого запуска. */
 
-const CACHE = "autoprofi-v1";
+const CACHE = "autoprofi-v2";
 
 const ASSETS = [
   "./",
@@ -50,6 +50,23 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Навигацию всегда сначала берём из сети: после обновления APK
+  // пользователь не должен застрять на старом index.html из кэша.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match("./index.html")))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cached) => {

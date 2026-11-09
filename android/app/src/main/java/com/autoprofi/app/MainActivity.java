@@ -6,21 +6,27 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -45,13 +51,17 @@ public class MainActivity extends Activity {
     private static final Map<String, String> MIME = new HashMap<>();
 
     static {
-        MIME.put("html", "text/html; charset=utf-8");
-        MIME.put("htm", "text/html; charset=utf-8");
-        MIME.put("js", "text/javascript; charset=utf-8");
-        MIME.put("mjs", "text/javascript; charset=utf-8");
-        MIME.put("css", "text/css; charset=utf-8");
-        MIME.put("json", "application/json; charset=utf-8");
-        MIME.put("webmanifest", "application/manifest+json; charset=utf-8");
+        // ВАЖНО: mimeType в WebResourceResponse должен быть без параметров
+        // (charset передаётся отдельным аргументом). Если добавить
+        // "; charset=utf-8", WebView на Android 15/16 считает тип
+        // неизвестным и показывает HTML как обычный текст.
+        MIME.put("html", "text/html");
+        MIME.put("htm", "text/html");
+        MIME.put("js", "text/javascript");
+        MIME.put("mjs", "text/javascript");
+        MIME.put("css", "text/css");
+        MIME.put("json", "application/json");
+        MIME.put("webmanifest", "application/manifest+json");
         MIME.put("svg", "image/svg+xml");
         MIME.put("png", "image/png");
         MIME.put("jpg", "image/jpeg");
@@ -62,6 +72,7 @@ public class MainActivity extends Activity {
     }
 
     private WebView webView;
+    private LinearLayout errorPanel;
     private ValueCallback<Uri[]> filePathCallback;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -74,11 +85,21 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
 
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor(COLOR_BG));
+
         webView = new WebView(this);
         webView.setBackgroundColor(Color.parseColor(COLOR_BG));
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        setContentView(webView, new FrameLayout.LayoutParams(
+        root.addView(webView, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        errorPanel = buildErrorPanel();
+        errorPanel.setVisibility(View.GONE);
+        root.addView(errorPanel, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        setContentView(root);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -97,6 +118,39 @@ public class MainActivity extends Activity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return serveLocal(request.getUrl());
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri url = request.getUrl();
+                if (url == null || APP_HOST.equals(url.getHost())) {
+                    return false;
+                }
+                // Внешние ссылки (GitHub, Telegram и т.п.) открываем в браузере,
+                // а не внутри WebView.
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, url));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this,
+                            "Не удалось открыть ссылку", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (errorPanel != null) {
+                    errorPanel.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request,
+                                        WebResourceError error) {
+                if (request != null && request.isForMainFrame()
+                        && errorPanel != null) {
+                    errorPanel.setVisibility(View.VISIBLE);
+                }
             }
         });
 
@@ -146,13 +200,70 @@ public class MainActivity extends Activity {
             mime = guessed != null ? guessed : "application/octet-stream";
         }
 
+        boolean textual = mime.startsWith("text/")
+                || "application/json".equals(mime)
+                || "application/manifest+json".equals(mime)
+                || "image/svg+xml".equals(mime);
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Cache-Control", "no-cache");
+
         try {
             InputStream in = getAssets().open(path);
-            return new WebResourceResponse(mime, "UTF-8", in);
+            return new WebResourceResponse(
+                    mime, textual ? "UTF-8" : null, 200, "OK", headers, in);
         } catch (IOException e) {
-            return new WebResourceResponse("text/plain", "UTF-8",
-                    new ByteArrayInputStream(new byte[0]));
+            return new WebResourceResponse(
+                    "text/plain", "UTF-8", 404, "Not Found", headers,
+                    new ByteArrayInputStream("Not found".getBytes(StandardCharsets.UTF_8)));
         }
+    }
+
+    /** Экран ошибки на случай, если WebView не смог загрузить приложение. */
+    private LinearLayout buildErrorPanel() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(dp(32), dp(32), dp(32), dp(32));
+        panel.setBackgroundColor(Color.parseColor(COLOR_BG));
+
+        TextView title = new TextView(this);
+        title.setText("Не удалось загрузить приложение");
+        title.setTextSize(20);
+        title.setTextColor(Color.parseColor("#0f172a"));
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title);
+
+        TextView hint = new TextView(this);
+        hint.setText("Проверьте свободное место и попробуйте ещё раз.");
+        hint.setTextSize(14);
+        hint.setTextColor(Color.parseColor("#64748b"));
+        hint.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        hintParams.topMargin = dp(8);
+        panel.addView(hint, hintParams);
+
+        Button retry = new Button(this);
+        retry.setText("Повторить");
+        retry.setOnClickListener(v -> {
+            if (errorPanel != null) {
+                errorPanel.setVisibility(View.GONE);
+            }
+            webView.loadUrl(APP_URL);
+        });
+        LinearLayout.LayoutParams retryParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        retryParams.topMargin = dp(20);
+        panel.addView(retry, retryParams);
+
+        return panel;
+    }
+
+    private int dp(int value) {
+        return Math.round(getResources().getDisplayMetrics().density * value);
     }
 
     @Override
@@ -175,9 +286,10 @@ public class MainActivity extends Activity {
             super.onBackPressed();
             return;
         }
-        // Сначала даём приложению закрыть модалку / вернуться на главный экран
+        // Сначала даём приложению закрыть модалку / вернуться на главный экран.
+        // evaluateJavascript возвращает JSON: boolean true -> "true" без кавычек.
         webView.evaluateJavascript(
-                "window.__appBack ? String(window.__appBack()) : 'false'",
+                "window.__appBack ? Boolean(window.__appBack()) : false",
                 value -> {
                     if (!"true".equals(value)) {
                         moveTaskToBack(true);

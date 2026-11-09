@@ -65,8 +65,15 @@ scripts/deploy-pages.sh
 
 ## Android APK
 
-Готовый отладочный APK: [`dist/autoprofi-v1.0.0.apk`](dist/autoprofi-v1.0.0.apk)
+Скачать готовый APK: [последний релиз](https://github.com/vladimirgorodok/autoprofi/releases/latest)
+или [зеркало на GitHub Pages](https://vladimirgorodok.github.io/autoprofi/download/autoprofi.apk)
 (подписан debug-ключом, устанавливается на устройство/эмулятор).
+
+**Что нового в 1.0.1:** исправлен показ HTML-кода вместо интерфейса в WebView
+на Android 15/16 — MIME-тип в `WebResourceResponse` теперь передаётся без
+параметра `charset` (он идёт отдельным аргументом). Также внешние ссылки
+открываются в браузере, а при ошибке загрузки показывается экран с кнопкой
+«Повторить».
 
 Сборка:
 
@@ -78,7 +85,7 @@ scripts/build-apk.sh debug                # Gradle
 scripts/build-apk.sh --manual debug       # aapt/javac/d8/apksigner, без Gradle
 ```
 
-Результат: `dist/autoprofi-v1.0.0.apk`. Иконки пересобираются из SVG:
+Результат: `dist/autoprofi-v1.0.1.apk`. Иконки пересобираются из SVG:
 
 ```bash
 scripts/make-icons.sh   # нужен rsvg-convert

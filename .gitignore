@@ -24,5 +24,6 @@ Thumbs.db
 *.keystore
 !android/debug.keystore
 
-# Подписи APK
+# Собранные APK и подписи (публикуются в Releases)
+dist/*.apk
 dist/*.idsig

@@ -23,7 +23,7 @@ import {
 } from "../ui.js";
 import { download, esc, fmtDate, fmtTime, isoDate, money, today } from "../utils.js";
 
-const VERSION = "1.0.0";
+const VERSION = "1.0.1";
 const REPO_URL = "https://github.com/vladimirgorodok/autoprofi";
 const APK_URL = "https://github.com/vladimirgorodok/autoprofi/releases/latest";
 const WEB_URL = "https://vladimirgorodok.github.io/autoprofi/";
