@@ -195,7 +195,7 @@ public class MainActivity extends Activity {
     }
 
     /** Мост для сохранения файлов из JS: AndroidFile.saveFile(name, base64, mime). */
-    private class FileBridge {
+    public class FileBridge {
         @JavascriptInterface
         public boolean saveFile(String filename, String base64, String mime) {
             try {
