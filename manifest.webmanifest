@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "АвтоПрофи",
+  "short_name": "АвтоПрофи",
+  "description": "Путевые листы, поездки, заправки и расчёты по рейсам. Работает офлайн.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f7f7",
+  "theme_color": "#0f766e",
+  "lang": "ru",
+  "categories": ["business", "productivity", "travel"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Путевые листы", "short_name": "Листы", "url": "./#/waybills", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Заправки", "short_name": "Заправки", "url": "./#/fuels", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "ИИ-агент", "short_name": "Агент", "url": "./#/agent", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
