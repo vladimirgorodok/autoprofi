@@ -1,6 +1,6 @@
 /* Service worker: приложение работает офлайн после первого запуска. */
 
-const CACHE = "autoprofi-v3";
+const CACHE = "autoprofi-v4";
 
 const ASSETS = [
   "./",
@@ -8,9 +8,11 @@ const ASSETS = [
   "./styles.css",
   "./manifest.webmanifest",
   "./js/app.js",
+  "./js/archive.js",
   "./js/store.js",
   "./js/ui.js",
   "./js/utils.js",
+  "./js/version.js",
   "./js/screens/home.js",
   "./js/screens/waybills.js",
   "./js/screens/trips.js",

@@ -265,6 +265,25 @@ function check(name, cond, extra = '') {
   click('[data-global="archive"]');
   await tick();
   check('archive modal', !!doc.querySelector('[data-archive-save]'));
+  let savedArchive = null;
+  window.AndroidFile = {
+    saveFile(name, base64, mime) {
+      savedArchive = { name, base64, mime };
+      return true;
+    },
+  };
+  click('[data-archive-save]');
+  await tick();
+  const savedBytes = savedArchive ? Buffer.from(savedArchive.base64, 'base64') : Buffer.alloc(0);
+  check(
+    'archive save bridge',
+    !!savedArchive &&
+      savedArchive.name.endsWith('.zip') &&
+      savedArchive.mime === 'application/zip' &&
+      savedBytes[0] === 0x50 &&
+      savedBytes[1] === 0x4b
+  );
+  delete window.AndroidFile;
   click('.modal-backdrop [data-close]');
 
   // --- More sheet

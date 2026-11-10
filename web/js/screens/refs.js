@@ -19,7 +19,7 @@ import {
   textarea,
   toast,
 } from "../ui.js";
-import { esc } from "../utils.js";
+import { esc, LOADING_TYPES } from "../utils.js";
 
 const TABS = [
   {
@@ -63,8 +63,6 @@ const TABS = [
     empty: "Добавьте статью расходов для финансов.",
   },
 ];
-
-const LOADING_TYPES = ["Задняя", "Боковая", "Верхняя", "Бортовая", "Комбинированная"];
 
 let tab = "contractors";
 let query = "";

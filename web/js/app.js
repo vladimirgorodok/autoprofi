@@ -10,7 +10,7 @@ import {
   richText,
   toast,
 } from "./ui.js";
-import { esc, fmtDate, fmtTime, isoDate, money, today } from "./utils.js";
+import { esc, fmtDate, money } from "./utils.js";
 
 import home from "./screens/home.js";
 import waybills from "./screens/waybills.js";
@@ -20,7 +20,7 @@ import fuels from "./screens/fuels.js";
 import finance from "./screens/finance.js";
 import vehicles from "./screens/vehicles.js";
 import refs from "./screens/refs.js";
-import settings from "./screens/settings.js";
+import settings, { openArchiveModal } from "./screens/settings.js";
 
 const screens = { home, waybills, trips, agent, fuels, finance, vehicles, refs, settings };
 
@@ -128,7 +128,7 @@ function renderNav() {
      <button class="side-item" data-global="archive"><span class="tile">${icon(
        "archive",
        "size-4.5"
-     )}</span>Облачный архив</button>
+     )}</span>Архив данных</button>
      <button class="side-item" data-global="exchange"><span class="tile">${icon(
        "share",
        "size-4.5"
@@ -262,7 +262,7 @@ function globalAction(name) {
   if (name === "more") openMore();
   if (name === "search") openSearch();
   if (name === "theme") toggleTheme();
-  if (name === "archive") openArchive();
+  if (name === "archive") openArchiveModal();
   if (name === "exchange") {
     go("settings");
     setTimeout(() => {
@@ -293,8 +293,8 @@ function openMore() {
         </button>`
       ).join("")}
       <button class="sheet-item" data-global="archive">
-        <span class="tile">${icon("cloud", "size-4.5")}</span>
-        <span style="flex:1">Облачный архив</span>${icon("chevronRight", "size-4")}
+        <span class="tile">${icon("archive", "size-4.5")}</span>
+        <span style="flex:1">Архив данных</span>${icon("chevronRight", "size-4")}
       </button>
     </div>`,
   });
@@ -306,7 +306,7 @@ function openMore() {
   );
   m.el.querySelector('[data-global="archive"]').addEventListener("click", () => {
     closeModal(m.el.__entry);
-    openArchive();
+    openArchiveModal();
   });
 }
 
@@ -404,41 +404,6 @@ function openSearch() {
   input.addEventListener("input", () => draw(input.value));
   draw("");
   setTimeout(() => input.focus(), 50);
-}
-
-function openArchive() {
-  const state = getState();
-  const m = openModal({
-    title: "Облачный архив",
-    subtitle: "Резервная копия данных",
-    body: `
-      <div class="notice" style="margin-bottom:12px">
-        ${icon("info", "size-4")}
-        <span>Данные хранятся на устройстве. Архив — это JSON-файл со всеми рейсами,
-        листами, заправками и финансами. Его можно сохранить в облако или отправить себе.</span>
-      </div>
-      <div class="kv" style="margin-bottom:14px">
-        <div><div class="k">Рейсов</div><div class="v">${state.trips.length}</div></div>
-        <div><div class="k">Путевых листов</div><div class="v">${state.waybills.length}</div></div>
-        <div><div class="k">Заправок</div><div class="v">${state.fuels.length}</div></div>
-        <div><div class="k">Операций</div><div class="v">${state.finance.length}</div></div>
-      </div>
-      <button class="btn btn-primary btn-block" data-archive-save>${icon(
-        "download",
-        "size-4"
-      )}Сохранить архив</button>
-      <p class="small muted" style="margin-top:10px;text-align:center">Последняя синхронизация: ${fmtDate(
-        isoDate(new Date(state.settings.lastSync || Date.now()))
-      )}, ${fmtTime(state.settings.lastSync || Date.now())}</p>`,
-  });
-
-  m.el.querySelector("[data-archive-save]").addEventListener("click", async () => {
-    const { exportState, markSynced } = await import("./store.js");
-    const { download } = await import("./utils.js");
-    download(`autoprofi-backup-${today()}.json`, exportState());
-    markSynced();
-    toast("Архив сохранён", "ok");
-  });
 }
 
 /* ------------------------------------------------------------------ */

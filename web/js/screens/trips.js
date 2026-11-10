@@ -26,7 +26,18 @@ import {
   toast,
   tripBadge,
 } from "../ui.js";
-import { download, esc, fmtDate, fmtDateShort, money, num, relDate, toCSV, today } from "../utils.js";
+import {
+  download,
+  esc,
+  fmtDate,
+  fmtDateShort,
+  LOADING_TYPES,
+  money,
+  num,
+  relDate,
+  toCSV,
+  today,
+} from "../utils.js";
 import { openWaybillModal } from "./waybills.js";
 
 let filter = "all";
@@ -155,6 +166,8 @@ export function openTripModal(id) {
         <div><div class="k">Дата</div><div class="v">${fmtDate(t.date)}</div></div>
         <div><div class="k">Расстояние</div><div class="v">${num(t.distance)} км</div></div>
         <div><div class="k">Груз</div><div class="v">${esc(t.cargo || "—")}</div></div>
+        <div><div class="k">Вес</div><div class="v">${t.weightKg ? `${num(t.weightKg)} кг` : "—"}</div></div>
+        <div><div class="k">Загрузка</div><div class="v">${esc(t.loadingType || "—")}</div></div>
         <div><div class="k">Ставка</div><div class="v">${t.rate ? `${num(t.rate)} ₽/км` : "—"}</div></div>
         <div><div class="k">Сумма</div><div class="v big">${money(t.amount)}</div></div>
         <div><div class="k">Статус</div><div class="v">${tripBadge(t.status)}</div></div>
@@ -174,6 +187,29 @@ export function openTripModal(id) {
             : ""
         }
       </div>
+
+      ${
+        t.stops?.length
+          ? `<div style="margin-bottom:12px">
+              <div class="tiny muted" style="margin-bottom:6px">Остановки маршрута</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                ${t.stops
+                  .map(
+                    (stop) => `<div class="row" style="padding:8px 10px;border:1px solid var(--line);border-radius:10px">
+                      <span class="ri">${icon("pin", "size-4")}</span>
+                      <span class="rmain">
+                        <span class="rtitle">${esc(stop.place || stop.address || "Остановка")}</span>
+                        <span class="rsub">${esc(
+                          [stop.type, stop.at, stop.note].filter(Boolean).join(" · ")
+                        )}</span>
+                      </span>
+                    </div>`
+                  )
+                  .join("")}
+              </div>
+            </div>`
+          : ""
+      }
 
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${
@@ -253,6 +289,8 @@ export function openTripModalForm(trip = null) {
     from: "",
     to: "",
     cargo: "",
+    weightKg: "",
+    loadingType: "",
     distance: "",
     rate: "",
     amount: "",
@@ -312,6 +350,16 @@ export function openTripModalForm(trip = null) {
               list: "trip-cargo",
             })
           )}</div>
+          ${field("Вес, кг", moneyInput({ name: "weightKg", value: t.weightKg }))}
+          ${field(
+            "Тип загрузки",
+            select({
+              name: "loadingType",
+              value: t.loadingType,
+              placeholder: "Не указан",
+              options: LOADING_TYPES,
+            })
+          )}
           ${field("Расстояние, км", moneyInput({ name: "distance", value: t.distance }))}
           ${field("Ставка, ₽/км", moneyInput({ name: "rate", value: t.rate }))}
           ${field("Сумма, ₽", moneyInput({ name: "amount", value: t.amount }))}
@@ -358,6 +406,7 @@ export function openTripModalForm(trip = null) {
     const raw = formData(form);
     const payload = {
       ...raw,
+      weightKg: Number(raw.weightKg) || 0,
       distance: Number(raw.distance) || 0,
       rate: Number(raw.rate) || 0,
       amount: Number(raw.amount) || Math.round((Number(raw.distance) || 0) * (Number(raw.rate) || 0)),
@@ -394,6 +443,8 @@ function exportCSV() {
     { label: "Откуда", value: (t) => t.from },
     { label: "Куда", value: (t) => t.to },
     { label: "Груз", value: (t) => t.cargo },
+    { label: "Вес, кг", value: (t) => t.weightKg },
+    { label: "Загрузка", value: (t) => t.loadingType },
     { label: "Км", value: (t) => t.distance },
     { label: "Ставка", value: (t) => t.rate },
     { label: "Сумма", value: (t) => t.amount },

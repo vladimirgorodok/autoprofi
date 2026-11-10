@@ -13,6 +13,7 @@ import {
   moneyInput,
   openModal,
   select,
+  textarea,
   toast,
 } from "../ui.js";
 import { esc, fmtDate, money, num } from "../utils.js";
@@ -79,7 +80,13 @@ function renderCard(v) {
           </div>
           <div class="small muted" style="margin-top:2px">
             ${esc(v.plate)}${v.trailer ? " · прицеп " + esc(v.trailer) : ""} · ${v.year}
+            ${v.type ? " · " + esc(v.type) : ""}
           </div>
+          ${
+            v.vin
+              ? `<div class="tiny muted" style="margin-top:1px">VIN ${esc(v.vin)}</div>`
+              : ""
+          }
         </div>
         <button class="icon-btn" data-action="open" data-id="${v.id}" aria-label="Изменить">
           ${icon("pencil", "size-4")}
@@ -124,6 +131,9 @@ export function openVehicleModal(id = null) {
     model: "",
     plate: "",
     trailer: "",
+    vin: "",
+    type: "Тягач",
+    note: "",
     year: new Date().getFullYear(),
     odometer: 0,
     nextService: 0,
@@ -145,6 +155,11 @@ export function openVehicleModal(id = null) {
           ${field("Модель", input({ name: "model", value: data.model, placeholder: "FH 460" }))}
           ${field("Госномер", input({ name: "plate", value: data.plate, placeholder: "А123ВС 77" }))}
           ${field("Прицеп", input({ name: "trailer", value: data.trailer, placeholder: "АП 4821 77" }))}
+          <div class="span-2">${field(
+            "VIN",
+            input({ name: "vin", value: data.vin, placeholder: "17 символов" })
+          )}</div>
+          ${field("Тип ТС", input({ name: "type", value: data.type, placeholder: "Тягач, фургон" }))}
           ${field("Год", moneyInput({ name: "year", value: data.year }))}
           ${field("Пробег, км", moneyInput({ name: "odometer", value: data.odometer }))}
           ${field("Следующее ТО, км", moneyInput({ name: "nextService", value: data.nextService }))}
@@ -166,6 +181,10 @@ export function openVehicleModal(id = null) {
               ],
             })
           )}
+          <div class="span-2">${field(
+            "Примечание",
+            textarea({ name: "note", value: data.note, placeholder: "Особенности, документы, сервис" })
+          )}</div>
         </div>
       </form>`,
     footer: `

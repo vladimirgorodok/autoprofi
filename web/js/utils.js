@@ -2,6 +2,14 @@
 
 export const DAY = 86_400_000;
 
+export const LOADING_TYPES = [
+  "Задняя",
+  "Боковая",
+  "Верхняя",
+  "Бортовая",
+  "Комбинированная",
+];
+
 const pad = (n) => String(n).padStart(2, "0");
 
 /** Локальная дата в формате YYYY-MM-DD (без сдвига часового пояса). */
@@ -140,8 +148,40 @@ export function pluralize(n, [one, few, many]) {
   return `${num(n)} ${plural(n, one, few, many)}`;
 }
 
+function toBase64(content) {
+  let bytes;
+  if (content instanceof Uint8Array) bytes = content;
+  else if (content instanceof ArrayBuffer) bytes = new Uint8Array(content);
+  else if (ArrayBuffer.isView(content)) {
+    bytes = new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
+  } else {
+    bytes = new TextEncoder().encode(String(content ?? ""));
+  }
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export function download(filename, content, type = "application/json") {
-  const blob = new Blob([content], { type: `${type};charset=utf-8` });
+  // В Android-обёртке blob-скачивание не работает: сохраняем через нативный
+  // диалог «Создать документ», чтобы архив можно было положить в Downloads.
+  const android = typeof window !== "undefined" ? window.AndroidFile : null;
+  if (android?.saveFile) {
+    try {
+      const mime = type.split(";")[0];
+      if (android.saveFile(filename, toBase64(content), mime)) return;
+    } catch {
+      /* fall through to the browser download */
+    }
+  }
+
+  const mime = /^text\/|application\/(json|xml|javascript)/.test(type)
+    ? `${type};charset=utf-8`
+    : type;
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

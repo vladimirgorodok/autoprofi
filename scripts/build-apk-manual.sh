@@ -21,8 +21,8 @@ fi
 PLATFORM="$SDK/platforms/android-34/android.jar"
 BT="$SDK/build-tools/34.0.0"
 PKG="com.autoprofi.app"
-VERSION="1.1.0"
-VERSION_CODE="3"
+VERSION="1.2.0"
+VERSION_CODE="4"
 
 need() {
   command -v "$1" >/dev/null 2>&1 || { echo "Не найдена команда: $1" >&2; exit 1; }

@@ -182,6 +182,16 @@ export function openWaybillModal(id) {
         <div><div class="k">Одометр на возврате</div><div class="v">${wb.odometerIn ? num(wb.odometerIn) : "—"}</div></div>
         <div><div class="k">Топливо выдано</div><div class="v">${num(wb.fuelIssued)} л</div></div>
         <div><div class="k">Израсходовано</div><div class="v">${num(wb.fuelUsed)} л</div></div>
+        ${
+          wb.fuelOut > 0
+            ? `<div><div class="k">На выезде</div><div class="v">${num(wb.fuelOut)} л</div></div>`
+            : ""
+        }
+        ${
+          wb.fuelIn > 0
+            ? `<div><div class="k">На возврате</div><div class="v">${num(wb.fuelIn)} л</div></div>`
+            : ""
+        }
         <div><div class="k">Остаток топлива</div><div class="v big">${num(fuelLeft)} л</div></div>
         <div><div class="k">Пройдено</div><div class="v">${num(wb.kmDone)} км</div></div>
       </div>
@@ -287,6 +297,8 @@ function openWaybillForm(wb = null) {
     odometerIn: "",
     fuelIssued: "",
     fuelUsed: 0,
+    fuelOut: "",
+    fuelIn: "",
     note: "",
   };
 
@@ -359,6 +371,8 @@ function openWaybillForm(wb = null) {
           )}</div>
           ${field("Расстояние, км", moneyInput({ name: "distance", value: data.distance }))}
           ${field("Топливо выдано, л", moneyInput({ name: "fuelIssued", value: data.fuelIssued }))}
+          ${field("Топливо на выезде, л", moneyInput({ name: "fuelOut", value: data.fuelOut }))}
+          ${field("Топливо на возврате, л", moneyInput({ name: "fuelIn", value: data.fuelIn }))}
           ${field("Одометр на выезде", moneyInput({ name: "odometerOut", value: data.odometerOut }))}
           ${field("Одометр на возврате", moneyInput({ name: "odometerIn", value: data.odometerIn }))}
           <div class="span-2">${field(
@@ -399,6 +413,8 @@ function openWaybillForm(wb = null) {
       kmDone: Number(wb?.kmDone) || 0,
       fuelIssued: Number(raw.fuelIssued) || 0,
       fuelUsed: Number(wb?.fuelUsed) || 0,
+      fuelOut: Number(raw.fuelOut) || 0,
+      fuelIn: Number(raw.fuelIn) || 0,
       odometerOut: raw.odometerOut ? Number(raw.odometerOut) : null,
       odometerIn: raw.odometerIn ? Number(raw.odometerIn) : null,
       issuedAt: raw.status === "draft" ? null : wb?.issuedAt || today(),

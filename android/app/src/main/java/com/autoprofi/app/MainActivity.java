@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -26,6 +28,7 @@ import android.widget.Toast;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
@@ -42,6 +45,7 @@ import java.util.Map;
 public class MainActivity extends Activity {
 
     private static final int FILE_CHOOSER_REQUEST = 1001;
+    private static final int SAVE_FILE_REQUEST = 1002;
     private static final String APP_HOST = "appassets.androidplatform.net";
     private static final String APP_URL = "https://" + APP_HOST + "/assets/www/index.html";
 
@@ -75,6 +79,8 @@ public class MainActivity extends Activity {
     private LinearLayout errorPanel;
     private boolean mainFrameError;
     private ValueCallback<Uri[]> filePathCallback;
+    private byte[] pendingFileBytes;
+    private String pendingFileName;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -114,6 +120,10 @@ public class MainActivity extends Activity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setTextZoom(100);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+
+        // Blob-скачивание в WebView не работает. Этот мост открывает системный
+        // диалог «Создать документ» и сохраняет ZIP/CSV/JSON в выбранное место.
+        webView.addJavascriptInterface(new FileBridge(), "AndroidFile");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -182,6 +192,40 @@ public class MainActivity extends Activity {
 
         mainFrameError = false;
         webView.loadUrl(APP_URL);
+    }
+
+    /** Мост для сохранения файлов из JS: AndroidFile.saveFile(name, base64, mime). */
+    private class FileBridge {
+        @JavascriptInterface
+        public boolean saveFile(String filename, String base64, String mime) {
+            try {
+                final byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+                final String safeName = (filename == null || filename.isEmpty())
+                        ? "autoprofi-file" : filename;
+                final String safeMime = (mime == null || mime.isEmpty())
+                        ? "application/octet-stream" : mime;
+                runOnUiThread(() -> {
+                    pendingFileBytes = bytes;
+                    pendingFileName = safeName;
+                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType(safeMime);
+                    intent.putExtra(Intent.EXTRA_TITLE, safeName);
+                    try {
+                        startActivityForResult(intent, SAVE_FILE_REQUEST);
+                    } catch (Exception e) {
+                        pendingFileBytes = null;
+                        Toast.makeText(MainActivity.this, "Не удалось открыть сохранение файла",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return true;
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                        "Не удалось подготовить файл", Toast.LENGTH_SHORT).show());
+                return false;
+            }
+        }
     }
 
     /** Отдаёт файл приложения из assets по https-адресу appassets.androidplatform.net. */
@@ -280,6 +324,25 @@ public class MainActivity extends Activity {
             }
             filePathCallback.onReceiveValue(results);
             filePathCallback = null;
+            return;
+        }
+        if (requestCode == SAVE_FILE_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null
+                    && pendingFileBytes != null) {
+                try (OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+                    if (out != null) {
+                        out.write(pendingFileBytes);
+                        out.flush();
+                        Toast.makeText(this, "Файл сохранён: " + pendingFileName,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, "Не удалось сохранить файл",
+                            Toast.LENGTH_SHORT).show();
+                }
+            }
+            pendingFileBytes = null;
+            pendingFileName = null;
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);

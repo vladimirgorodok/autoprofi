@@ -12,9 +12,10 @@ import {
   diffDays,
   parseDate,
 } from "./utils.js";
+import { DATA_VERSION } from "./version.js";
 
 const KEY = "autoprofi.state.v1";
-const STATE_VERSION = 2;
+const STATE_VERSION = DATA_VERSION;
 
 /* ------------------------------------------------------------------ */
 /* Демо-данные                                                         */
@@ -30,6 +31,7 @@ function seed() {
       model: "FH 460",
       plate: "А123ВС 77",
       trailer: "АП 4821 77",
+      vin: "YV2RT40A8MB123456",
       year: 2021,
       odometer: 486_320,
       nextService: 490_500,
@@ -38,6 +40,8 @@ function seed() {
       fuel: "ДТ",
       tank: 600,
       color: "teal",
+      type: "Тягач",
+      note: "Основной тягач, обслуживается у официального дилера.",
       active: true,
     },
     {
@@ -46,6 +50,7 @@ function seed() {
       model: "5490",
       plate: "М774ТК 50",
       trailer: "ЕК 1093 50",
+      vin: "XTC549000K1234567",
       year: 2019,
       odometer: 212_840,
       nextService: 218_000,
@@ -54,6 +59,8 @@ function seed() {
       fuel: "ДТ",
       tank: 500,
       color: "amber",
+      type: "Тягач",
+      note: "",
       active: false,
     },
   ];
@@ -1142,14 +1149,15 @@ export function resetDemo() {
   applyTheme(state.settings.theme);
 }
 
-export function importState(json) {
-  const parsed = JSON.parse(json);
-  if (!parsed || !parsed.version || !Array.isArray(parsed.trips)) {
+export function importState(input) {
+  const parsed = typeof input === "string" ? JSON.parse(input) : input;
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.trips)) {
     throw new Error("Файл не похож на резервную копию АвтоПрофи");
   }
   state = migrate(parsed);
   commit();
   applyTheme(state.settings.theme);
+  return state;
 }
 
 export function exportState() {

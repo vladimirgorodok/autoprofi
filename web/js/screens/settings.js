@@ -1,7 +1,6 @@
 /* Настройки: профиль, тема, ИИ, данные, синхронизация. */
 
 import {
-  exportState,
   getState,
   importState,
   markSynced,
@@ -21,8 +20,10 @@ import {
   toast,
 } from "../ui.js";
 import { download, esc, fmtDate, fmtTime, isoDate, today } from "../utils.js";
+import { buildArchive, parseArchive } from "../archive.js";
+import { APP_VERSION } from "../version.js";
 
-const VERSION = "1.1.0";
+const VERSION = APP_VERSION;
 const REPO_URL = "https://github.com/vladimirgorodok/autoprofi";
 const APK_URL = "https://github.com/vladimirgorodok/autoprofi/releases/latest";
 const WEB_URL = "https://vladimirgorodok.github.io/autoprofi/";
@@ -85,19 +86,19 @@ export default {
       <div class="card" id="data-section">
         <div class="card-head"><h2>Данные</h2><span class="sub">${state.trips.length} рейсов</span></div>
         <div class="list">
-          <button class="settings-row" data-action="export-json">
-            <span class="sri">${icon("download", "size-4")}</span>
+          <button class="settings-row" data-action="export-archive">
+            <span class="sri">${icon("archive", "size-4")}</span>
             <span class="srmain">
-              <span class="srtitle">Резервная копия</span>
-              <span class="srsub">Скачать JSON со всеми данными</span>
+              <span class="srtitle">Скачать архив</span>
+              <span class="srsub">ZIP: все таблицы CSV + полная JSON-копия</span>
             </span>
             ${icon("chevronRight", "size-4", 2)}
           </button>
-          <button class="settings-row" data-action="import-json">
+          <button class="settings-row" data-action="import-archive">
             <span class="sri">${icon("upload", "size-4")}</span>
             <span class="srmain">
-              <span class="srtitle">Восстановить из копии</span>
-              <span class="srsub">Загрузить JSON-архив</span>
+              <span class="srtitle">Импортировать архив</span>
+              <span class="srsub">ZIP или JSON — заменить данные</span>
             </span>
             ${icon("chevronRight", "size-4", 2)}
           </button>
@@ -191,10 +192,8 @@ export default {
       markSynced();
       toast("Данные синхронизированы", "ok");
     },
-    "export-json": () => {
-      download(`autoprofi-backup-${today()}.json`, exportState());
-      toast("Архив сохранён", "ok");
-    },
+    "export-archive": () => exportArchive(),
+    "import-archive": () => importArchiveDialog(),
     "export-csv": () => {
       const state = getState();
       const rows = [
@@ -220,29 +219,6 @@ export default {
       download(`autoprofi-obmen-${today()}.csv`, csv, "text/csv");
       toast("CSV сохранён", "ok");
     },
-    "import-json": () => {
-      const picker = document.createElement("input");
-      picker.type = "file";
-      picker.accept = "application/json,.json";
-      picker.addEventListener("change", async () => {
-        const file = picker.files?.[0];
-        if (!file) return;
-        try {
-          const text = await file.text();
-          const ok = await confirmDialog({
-            title: "Восстановить данные?",
-            message: "Текущие данные будут заменены содержимым архива.",
-            confirmText: "Восстановить",
-          });
-          if (!ok) return;
-          importState(text);
-          toast("Данные восстановлены", "ok");
-        } catch (err) {
-          toast(err.message || "Не удалось прочитать файл", "err");
-        }
-      });
-      picker.click();
-    },
     reset: async () => {
       const ok = await confirmDialog({
         title: "Сбросить все данные?",
@@ -256,6 +232,89 @@ export default {
     },
   },
 };
+
+/* ------------------------------------------------------------------ */
+/* Архив данных                                                        */
+/* ------------------------------------------------------------------ */
+
+export function exportArchive() {
+  const state = getState();
+  const bytes = buildArchive(state);
+  download(`autoprofi-archive-${today()}.zip`, bytes, "application/zip");
+  markSynced();
+  toast("Архив сохранён", "ok");
+}
+
+export function importArchiveDialog() {
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = ".zip,.json,application/zip,application/json";
+  picker.addEventListener("change", async () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const result = await parseArchive(buffer, file.name);
+      const s = result.summary;
+      const ok = await confirmDialog({
+        title: "Импортировать архив?",
+        message: `Текущие данные будут заменены. В архиве: ${s.vehicles} авто, ${s.waybills} путевых листов, ${s.trips} рейсов, ${s.fuels} заправок, ${s.finance} операций, ${s.refs} записей справочников.`,
+        confirmText: "Импортировать",
+        danger: true,
+      });
+      if (!ok) return;
+      importState(result.state);
+      toast(`Импортировано: ${s.trips} рейсов, ${s.refs} записей справочников`, "ok");
+    } catch (err) {
+      toast(err.message || "Не удалось прочитать архив", "err");
+    }
+  });
+  picker.click();
+}
+
+export function openArchiveModal() {
+  const state = getState();
+  const refs = Object.values(state.refs || {}).reduce(
+    (sum, list) => sum + (Array.isArray(list) ? list.length : 0),
+    0
+  );
+  const m = openModal({
+    title: "Архив данных",
+    subtitle: "Резервная копия и перенос",
+    body: `
+      <div class="notice" style="margin-bottom:12px">
+        ${icon("info", "size-4")}
+        <span>ZIP-архив содержит CSV-таблицы (как в файлах оригинала) и полную JSON-копию.
+        Импорт понимает ZIP и JSON. Текущие данные при импорте заменяются.</span>
+      </div>
+      <div class="kv" style="margin-bottom:14px">
+        <div><div class="k">Авто</div><div class="v">${state.vehicles.length}</div></div>
+        <div><div class="k">Листов</div><div class="v">${state.waybills.length}</div></div>
+        <div><div class="k">Рейсов</div><div class="v">${state.trips.length}</div></div>
+        <div><div class="k">Заправок</div><div class="v">${state.fuels.length}</div></div>
+        <div><div class="k">Операций</div><div class="v">${state.finance.length}</div></div>
+        <div><div class="k">Справочников</div><div class="v">${refs}</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary btn-block" data-archive-save>${icon(
+          "download",
+          "size-4"
+        )}Скачать архив</button>
+        <button class="btn btn-block" data-archive-import>${icon(
+          "upload",
+          "size-4"
+        )}Импортировать архив</button>
+      </div>
+      <p class="small muted" style="margin-top:10px;text-align:center">Последняя синхронизация: ${fmtDate(
+        isoDate(new Date(state.settings.lastSync || Date.now()))
+      )}, ${fmtTime(state.settings.lastSync || Date.now())}</p>`,
+  });
+  m.el.querySelector("[data-archive-save]").addEventListener("click", () => exportArchive());
+  m.el.querySelector("[data-archive-import]").addEventListener("click", () => {
+    closeModal(m.el.__entry);
+    importArchiveDialog();
+  });
+}
 
 /* ------------------------------------------------------------------ */
 
