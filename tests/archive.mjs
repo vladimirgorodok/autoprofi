@@ -172,7 +172,10 @@ const sampleState = {
       },
     ],
     cargo: [{ id: "g1", name: "Продукты", note: "" }],
-    categories: [{ id: "k1", name: "Доставка", note: "" }],
+    categories: [
+      { id: "k1", name: "Доставка", note: "" },
+      { id: "k2", name: "Платные дороги", note: "Не используется в демо" },
+    ],
     stations: [{ id: "s1", name: "Лукойл", note: "" }],
   },
   settings: {
@@ -218,6 +221,10 @@ check("round-trip firm inn", roundTrip.state.refs.contractors[0].inn === "770000
 check("round-trip place firm", roundTrip.state.refs.places[0].firmId === "c1");
 check("round-trip station", roundTrip.state.fuels[0].station === "Лукойл");
 check("round-trip finance", roundTrip.state.finance[0].type === "income");
+check(
+  "round-trip unused category",
+  roundTrip.state.refs.categories.some((item) => item.name === "Платные дороги")
+);
 check("round-trip settings from json", roundTrip.state.settings.theme === "dark");
 check("round-trip chat from json", roundTrip.state.chat.length === 1);
 
@@ -297,6 +304,10 @@ const mergedZip = buildZip([
 const merged = await parseArchive(mergedZip, "merged.zip");
 check("csv wins for tables", merged.state.vehicles[0].plate === "ИЗМЕНЁН");
 check("json supplies settings", merged.state.settings.theme === "dark");
+check(
+  "json supplies unused categories",
+  merged.state.refs.categories.some((item) => item.name === "Платные дороги")
+);
 
 /* ------------------------------------------------------------------ */
 /* Deflate ZIP (как у большинства архиваторов)                         */

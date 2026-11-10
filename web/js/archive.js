@@ -1321,6 +1321,24 @@ function buildStateFromTables(tables) {
   return state;
 }
 
+function mergeJsonCategories(state, jsonState) {
+  const list = jsonState?.refs?.categories;
+  if (!Array.isArray(list) || !list.length) return;
+  const seen = new Set(state.refs.categories.map((item) => item.name.toLowerCase()));
+  for (const item of list) {
+    const name = clean(item?.name);
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    state.refs.categories.push({
+      id: clean(item.id) || uid("k"),
+      name,
+      note: clean(item.note),
+    });
+  }
+}
+
 function summarizeState(state) {
   const refs = Object.values(state.refs || {}).reduce(
     (sum, list) => sum + (Array.isArray(list) ? list.length : 0),
@@ -1389,6 +1407,9 @@ export async function parseArchive(input, filename = "") {
       }
       if (Array.isArray(jsonState.chat)) state.chat = jsonState.chat;
       if (jsonState.createdAt) state.createdAt = jsonState.createdAt;
+      // Статьи расходов не выгружаются отдельной CSV-таблицей, поэтому
+      // неиспользуемые статьи восстанавливаем из JSON-копии.
+      mergeJsonCategories(state, jsonState);
     }
     return { state, source: "csv", summary: summarizeState(state), warnings: [] };
   }
